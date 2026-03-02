@@ -15,7 +15,7 @@ export default function Home() {
             </div>
 
             {/* Cards */}
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 gap-6">
                 <Link href="/menu"
                       className="bg-white p-8 rounded-2xl shadow-md text-center hover:shadow-xl transition hover:-translate-y-1">
                     <div className="text-5xl mb-4">🍛</div>
@@ -35,6 +35,13 @@ export default function Home() {
                     <div className="text-5xl mb-4">🧾</div>
                     <div className="font-bold text-xl text-gray-800">Create Bill</div>
                     <p className="text-gray-500 text-sm mt-2">Generate invoices & bills</p>
+                </Link>
+
+                <Link href="/reports"
+                      className="bg-white p-8 rounded-2xl shadow-md text-center hover:shadow-xl transition hover:-translate-y-1">
+                    <div className="text-5xl mb-4">📊</div>
+                    <div className="font-bold text-xl text-gray-800">Reports</div>
+                    <p className="text-gray-500 text-sm mt-2">Sales analytics & insights</p>
                 </Link>
             </div>
 
