@@ -34,6 +34,11 @@ public class AuthController {
         String name = body.get("name");
         String role = body.getOrDefault("role", "staff");
 
+        // Prevent registering as admin from frontend
+        if (role.equals("admin")) {
+            return ResponseEntity.badRequest().body("Cannot register as admin!");
+        }
+
         if (userRepository.findByEmail(email).isPresent()) {
             return ResponseEntity.badRequest().body("Email already exists!");
         }
@@ -55,7 +60,6 @@ public class AuthController {
         String password = body.get("password");
 
         Optional<User> userOpt = userRepository.findByEmail(email);
-
         if (userOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("User not found!");
         }
@@ -66,7 +70,6 @@ public class AuthController {
         }
 
         String token = jwtUtil.generateToken(email);
-
         Map<String, Object> response = new HashMap<>();
         response.put("token", token);
         response.put("id", user.getId());
@@ -77,17 +80,28 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    // GET all staff — Owner only
+    // GET all users — Admin & Owner only
     @GetMapping("/staff")
     public ResponseEntity<?> getAllStaff() {
         List<User> users = userRepository.findAll();
         return ResponseEntity.ok(users);
     }
 
-    // DELETE staff — Owner only
+    // DELETE user — Admin & Owner only
     @DeleteMapping("/staff/{id}")
     public ResponseEntity<?> deleteStaff(@PathVariable Long id) {
         userRepository.deleteById(id);
-        return ResponseEntity.ok("Staff deleted!");
+        return ResponseEntity.ok("User deleted!");
+    }
+
+    // UPDATE user role — Admin only
+    @PutMapping("/staff/{id}/role")
+    public ResponseEntity<?> updateRole(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        User user = userRepository.findById(id).orElseThrow();
+        user.setRole(body.get("role"));
+        userRepository.save(user);
+        return ResponseEntity.ok("Role updated!");
     }
 }

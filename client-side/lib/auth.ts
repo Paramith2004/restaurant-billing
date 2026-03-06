@@ -23,7 +23,15 @@ export const getUser = () => ({
 
 export const isLoggedIn = () => !!localStorage.getItem('token');
 
+// Admin — developer/maintainer
+export const isAdmin = () => localStorage.getItem('role') === 'admin';
+
+// Owner — restaurant owner
 export const isOwner = () => localStorage.getItem('role') === 'owner';
+
+// Admin or Owner
+export const isAdminOrOwner = () =>
+    isAdmin() || isOwner();
 
 export const logout = () => {
     localStorage.removeItem('id');
