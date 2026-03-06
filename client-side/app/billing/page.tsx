@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useEffect, useState, useCallback } from 'react';
 import API from '@/lib/api';
 
 interface MenuItem {
@@ -24,6 +24,18 @@ interface BillItem {
     totalPrice: number;
 }
 
+interface Bill {
+    id: number;
+    customer: { name: string };
+    tableNumber: number;
+    subtotal: number;
+    tax: number;
+    discount: number;
+    total: number;
+    paymentMethod: string;
+    orderType: string;
+}
+
 export default function BillingPage() {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -32,10 +44,11 @@ export default function BillingPage() {
     const [tableNumber, setTableNumber] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [discount, setDiscount] = useState('0');
+    const [serviceCharge, setServiceCharge] = useState('0');
     const [billItems, setBillItems] = useState<BillItem[]>([]);
     const [selectedMenuItem, setSelectedMenuItem] = useState('');
     const [quantity, setQuantity] = useState('1');
-    const [bill, setBill] = useState<any>(null);
+    const [bill, setBill] = useState<Bill | null>(null);
     const [message, setMessage] = useState('');
     const [givenMoney, setGivenMoney] = useState('0');
     const [showAddCustomer, setShowAddCustomer] = useState(false);
@@ -98,8 +111,9 @@ export default function BillingPage() {
     };
 
     const subtotal = billItems.reduce((sum, item) => sum + item.totalPrice, 0);
-    const tax = subtotal * 0.05;
-    const total = subtotal + tax - parseFloat(discount || '0');
+    const serviceChargeAmount = orderType === 'dine-in' ? parseFloat(serviceCharge || '0') : 0;
+    const discountAmount = parseFloat(discount || '0');
+    const total = subtotal + serviceChargeAmount - discountAmount;
 
     const handleSubmit = async () => {
         if (!selectedCustomer || billItems.length === 0) {
@@ -109,7 +123,9 @@ export default function BillingPage() {
             customerId: parseInt(selectedCustomer),
             tableNumber: orderType === 'takeaway' ? 0 : parseInt(tableNumber || '0'),
             paymentMethod,
-            discount: parseFloat(discount || '0'),
+            orderType,
+            discount: discountAmount,
+            serviceCharge: serviceChargeAmount,
             items: billItems.map(b => ({ menuItemId: b.menuItemId, quantity: b.quantity }))
         };
         const res = await API.post('/orders', orderData);
@@ -127,20 +143,21 @@ export default function BillingPage() {
       <tr>
         <td style="padding:8px 5px;border-bottom:1px solid #eee;">${item.name}</td>
         <td style="padding:8px 5px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td>
-        <td style="padding:8px 5px;border-bottom:1px solid #eee;text-align:right;">₹${item.unitPrice.toFixed(2)}</td>
-        <td style="padding:8px 5px;border-bottom:1px solid #eee;text-align:right;">₹${item.totalPrice.toFixed(2)}</td>
+        <td style="padding:8px 5px;border-bottom:1px solid #eee;text-align:right;">Rs. ${item.unitPrice.toFixed(2)}</td>
+        <td style="padding:8px 5px;border-bottom:1px solid #eee;text-align:right;">Rs. ${item.totalPrice.toFixed(2)}</td>
       </tr>`).join('');
-        const discountAmount = parseFloat(discount || '0');
+
         const givenAmount = parseFloat(givenMoney || '0');
         const changeAmount = givenAmount - (bill?.total || 0);
+
         printWindow.document.write(`
-      <html><head><title>Invoice #${bill.id}</title>
+      <html lang="en"><head><title>Invoice #${bill?.id}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box;}
         body{font-family:'Courier New',monospace;max-width:380px;margin:0 auto;padding:20px;color:#222;font-size:13px;}
         .center{text-align:center;}.dashed{border-top:2px dashed #999;margin:10px 0;}
         .solid{border-top:2px solid #222;margin:10px 0;}
-        .restaurant-name{font-size:22px;font-weight:bold;letter-spacing:2px;}
+        .restaurant-name{font-size:20px;font-weight:bold;letter-spacing:2px;}
         table{width:100%;border-collapse:collapse;}
         th{padding:8px 5px;border-bottom:2px solid #222;border-top:2px solid #222;font-size:12px;}
         .row{display:flex;justify-content:space-between;padding:5px 0;}
@@ -151,21 +168,23 @@ export default function BillingPage() {
       </style></head><body>
       <div class="center" style="margin-bottom:15px;">
         <p class="restaurant-name">🍽️ RESTAURANT</p>
-        <p class="restaurant-name">BILLING SYSTEM</p>
+        <p class="restaurant-name">🇱🇰 SRI LANKA</p>
         <div class="dashed"></div>
-        <p style="font-size:11px;color:#666;">Tax Invoice / Receipt</p>
+        <p style="font-size:11px;color:#666;">Invoice / Receipt</p>
         <p style="font-size:11px;color:#666;margin-top:3px;">📅 ${dateStr} | 🕐 ${timeStr}</p>
-        <p style="margin-top:5px;font-weight:bold;">${bill.orderType === 'takeaway' ? '🛍️ TAKE AWAY' : '🪑 DINE IN'}</p>
+        <p style="margin-top:5px;font-weight:bold;">
+          ${bill?.orderType === 'takeaway' ? '🛍️ TAKE AWAY' : '🪑 DINE IN'}
+        </p>
       </div>
       <div class="highlight" style="margin-bottom:12px;">
-        <div class="row"><span>Bill No.</span><span><b>#${bill.id}</b></span></div>
-        <div class="row"><span>Customer</span><span><b>${bill.customer?.name}</b></span></div>
-        ${bill.orderType === 'takeaway'
+        <div class="row"><span>Bill No.</span><span><b>#${bill?.id}</b></span></div>
+        <div class="row"><span>Customer</span><span><b>${bill?.customer?.name}</b></span></div>
+        ${bill?.orderType === 'takeaway'
             ? `<div class="row"><span>Order Type</span><span><b>🛍️ Take Away</b></span></div>`
-            : `<div class="row"><span>Table No.</span><span><b>${bill.tableNumber}</b></span></div>`}
+            : `<div class="row"><span>Table No.</span><span><b>${bill?.tableNumber}</b></span></div>`}
         <div class="row"><span>Payment</span><span><b>${
-            bill.paymentMethod === 'cash' ? '💵 Cash' :
-                bill.paymentMethod === 'card' ? '💳 Card' : '📱 UPI'
+            bill?.paymentMethod === 'cash' ? '💵 Cash' :
+                bill?.paymentMethod === 'card' ? '💳 Card' : '📱 UPI'
         }</b></span></div>
       </div>
       <table><thead><tr>
@@ -175,23 +194,39 @@ export default function BillingPage() {
         <th style="text-align:right;">Total</th>
       </tr></thead><tbody>${itemsHTML}</tbody></table>
       <div class="dashed"></div>
-      <div class="row"><span>Subtotal</span><span>₹${bill.subtotal?.toFixed(2)}</span></div>
-      <div class="row"><span>Tax (5%)</span><span>₹${bill.tax?.toFixed(2)}</span></div>
-      ${discountAmount > 0 ? `<div class="row" style="color:red;"><span>Discount</span><span>- ₹${discountAmount.toFixed(2)}</span></div>` : ''}
+      <div class="row"><span>Subtotal</span><span>Rs. ${bill?.subtotal?.toFixed(2)}</span></div>
+      ${serviceChargeAmount > 0 ? `
+        <div class="row" style="color:#d97706;">
+          <span>Service Charge</span>
+          <span>Rs. ${serviceChargeAmount.toFixed(2)}</span>
+        </div>` : ''}
+      ${discountAmount > 0 ? `
+        <div class="row" style="color:red;">
+          <span>Discount</span>
+          <span>- Rs. ${discountAmount.toFixed(2)}</span>
+        </div>` : ''}
       <div class="solid"></div>
-      <div class="total-row"><span>TOTAL</span><span style="color:#16a34a;">₹${bill.total?.toFixed(2)}</span></div>
+      <div class="total-row">
+        <span>TOTAL</span>
+        <span style="color:#16a34a;">Rs. ${bill?.total?.toFixed(2)}</span>
+      </div>
       <div class="solid"></div>
-      ${bill.paymentMethod === 'cash' ? `
+      ${bill?.paymentMethod === 'cash' ? `
         <div style="margin:10px 0;">
-          <div class="row" style="font-size:16px;font-weight:bold;"><span>Given Amount</span><span>₹${givenAmount.toFixed(2)}</span></div>
-          <div class="row" style="font-size:16px;font-weight:bold;color:#2563eb;"><span>Change</span><span>₹${changeAmount.toFixed(2)}</span></div>
-        </div><div class="dashed"></div>` : ''}
+          <div class="row" style="font-size:16px;font-weight:bold;">
+            <span>Given Amount</span><span>Rs. ${givenAmount.toFixed(2)}</span>
+          </div>
+          <div class="row" style="font-size:16px;font-weight:bold;color:#2563eb;">
+            <span>Change</span><span>Rs. ${changeAmount.toFixed(2)}</span>
+          </div>
+        </div>
+        <div class="dashed"></div>` : ''}
       <div class="footer">
         <p style="font-size:16px;margin-bottom:5px;">🙏 Thank You!</p>
         <p>Please Visit Again</p>
         <p style="margin-top:5px;">⭐ We Hope You Enjoyed Your Meal ⭐</p>
         <div class="dashed"></div>
-        <p style="font-size:10px;color:#999;">Powered by Restaurant Billing System</p>
+        <p style="font-size:10px;color:#999;">Powered by Restaurant Billing System 🇱🇰</p>
       </div></body></html>`);
         printWindow.document.close();
         printWindow.focus();
@@ -207,10 +242,9 @@ export default function BillingPage() {
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-800">🧾 Create Bill</h1>
-                        <p className="text-slate-400 text-sm mt-0.5">Generate invoices & bills</p>
+                        <p className="text-slate-400 text-sm mt-0.5">🇱🇰 Sri Lankan Restaurant POS</p>
                     </div>
-                    <Link href="/"
-                          className="flex items-center gap-2 text-sm text-slate-500 hover:text-orange-500 transition font-medium">
+                    <Link href="/" className="text-sm text-slate-500 hover:text-orange-500 transition font-medium">
                         ← Dashboard
                     </Link>
                 </div>
@@ -230,7 +264,7 @@ export default function BillingPage() {
 
                 <div className="grid grid-cols-5 gap-6">
 
-                    {/* Left — Order Form (3 cols) */}
+                    {/* Left — Order Form */}
                     <div className="col-span-3 space-y-5">
 
                         {/* Order Details */}
@@ -270,14 +304,14 @@ export default function BillingPage() {
                                         <div className="grid grid-cols-2 gap-3">
                                             <input placeholder="Full Name *" value={newCustomer.name}
                                                    onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                                                   className="border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                                                   className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
                                             <input placeholder="Phone *" value={newCustomer.phone}
                                                    onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                                                   className="border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                                                   className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
                                         </div>
                                         <input placeholder="Email (optional)" value={newCustomer.email}
                                                onChange={e => setNewCustomer({ ...newCustomer, email: e.target.value })}
-                                               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                                               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
                                         <div className="flex gap-2">
                                             <button onClick={handleAddCustomer} disabled={addingCustomer}
                                                     className="flex-1 bg-orange-500 text-white py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 disabled:opacity-50">
@@ -305,7 +339,7 @@ export default function BillingPage() {
                                                 }`}>
                                             🪑 Dine In
                                         </button>
-                                        <button onClick={() => setOrderType('takeaway')}
+                                        <button onClick={() => { setOrderType('takeaway'); setServiceCharge('0'); }}
                                                 className={`py-3 rounded-xl text-sm font-semibold transition border-2 ${
                                                     orderType === 'takeaway'
                                                         ? 'bg-yellow-500 text-white border-yellow-500 shadow-md'
@@ -314,6 +348,15 @@ export default function BillingPage() {
                                             🛍️ Take Away
                                         </button>
                                     </div>
+
+                                    {/* Take Away Info */}
+                                    {orderType === 'takeaway' && (
+                                        <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+                                            <p className="text-xs text-yellow-700 font-medium">
+                                                🛍️ Take Away — No service charge applied
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
@@ -339,15 +382,34 @@ export default function BillingPage() {
                                                 className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm">
                                             <option value="cash">💵 Cash</option>
                                             <option value="card">💳 Card</option>
-                                            <option value="upi">📱 UPI</option>
+                                            <option value="upi">📱 Online</option>
                                         </select>
                                     </div>
                                 </div>
 
+                                {/* Service Charge — Dine In only */}
+                                {orderType === 'dine-in' && (
+                                    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                                        <label className="text-xs font-semibold text-green-700 uppercase tracking-wider block mb-2">
+                                            🪑 Service Charge (Rs.)
+                                        </label>
+                                        <input
+                                            placeholder="Enter service charge amount"
+                                            value={serviceCharge}
+                                            type="number"
+                                            onChange={e => setServiceCharge(e.target.value)}
+                                            className="w-full border border-green-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-400 bg-white shadow-sm"
+                                        />
+                                        <p className="text-xs text-green-600 mt-2">
+                                            💡 Enter the service charge amount for dine-in orders
+                                        </p>
+                                    </div>
+                                )}
+
                                 {/* Discount */}
                                 <div>
                                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">
-                                        Discount (₹)
+                                        Discount (Rs.)
                                     </label>
                                     <input placeholder="0" value={discount} type="number"
                                            onChange={e => setDiscount(e.target.value)}
@@ -370,25 +432,24 @@ export default function BillingPage() {
                                             className="flex-1 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm">
                                         <option value="">Select Menu Item</option>
                                         {menuItems.map(m => (
-                                            <option key={m.id} value={m.id}>{m.name} — ₹{m.price}</option>
+                                            <option key={m.id} value={m.id}>{m.name} — Rs. {m.price}</option>
                                         ))}
                                     </select>
                                     <input placeholder="Qty" value={quantity} type="number" min="1"
                                            onChange={e => setQuantity(e.target.value)}
-                                           className="w-20 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm" />
+                                           className="w-20 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-orange-400 shadow-sm" />
                                     <button onClick={handleAddItem}
                                             className="bg-orange-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-orange-600 transition shadow-sm">
                                         + Add
                                     </button>
                                 </div>
 
-                                {/* Menu Items Grid */}
+                                {/* Quick Menu Buttons */}
                                 {menuItems.length > 0 && (
                                     <div className="grid grid-cols-3 gap-2 mt-4">
                                         {menuItems.map(m => (
                                             <button key={m.id}
                                                     onClick={() => {
-                                                        setSelectedMenuItem(m.id.toString());
                                                         setBillItems(prev => {
                                                             const existing = prev.find(b => b.menuItemId === m.id);
                                                             if (existing) {
@@ -404,7 +465,7 @@ export default function BillingPage() {
                                                     }}
                                                     className="bg-slate-50 hover:bg-orange-50 border border-slate-200 hover:border-orange-300 rounded-xl p-3 text-left transition">
                                                 <p className="text-xs font-semibold text-slate-700 truncate">{m.name}</p>
-                                                <p className="text-orange-500 font-bold text-sm mt-1">₹{m.price}</p>
+                                                <p className="text-orange-500 font-bold text-sm mt-1">Rs. {m.price}</p>
                                             </button>
                                         ))}
                                     </div>
@@ -413,7 +474,7 @@ export default function BillingPage() {
                         </div>
                     </div>
 
-                    {/* Right — Bill Preview (2 cols) */}
+                    {/* Right — Bill Preview */}
                     <div className="col-span-2">
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden sticky top-24">
                             <div className="bg-orange-500 px-5 py-3">
@@ -449,7 +510,7 @@ export default function BillingPage() {
                                                  className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
                                                 <div className="flex-1">
                                                     <p className="text-sm font-semibold text-slate-800">{item.name}</p>
-                                                    <p className="text-xs text-slate-400">₹{item.unitPrice} each</p>
+                                                    <p className="text-xs text-slate-400">Rs. {item.unitPrice} each</p>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <button onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
@@ -463,8 +524,8 @@ export default function BillingPage() {
                                                             className="w-7 h-7 bg-slate-200 hover:bg-green-100 text-slate-600 hover:text-green-600 rounded-lg text-sm font-bold transition">
                                                         +
                                                     </button>
-                                                    <span className="text-sm font-bold text-orange-500 w-16 text-right">
-                            ₹{item.totalPrice.toFixed(2)}
+                                                    <span className="text-sm font-bold text-orange-500 w-20 text-right">
+                            Rs. {item.totalPrice.toFixed(2)}
                           </span>
                                                     <button onClick={() => handleRemoveItem(item.menuItemId)}
                                                             className="text-red-400 hover:text-red-600 ml-1">✕</button>
@@ -477,19 +538,35 @@ export default function BillingPage() {
                                     <div className="border-t border-slate-100 pt-4 space-y-2">
                                         <div className="flex justify-between text-sm text-slate-500">
                                             <span>Subtotal</span>
-                                            <span>₹{subtotal.toFixed(2)}</span>
+                                            <span>Rs. {subtotal.toFixed(2)}</span>
                                         </div>
-                                        <div className="flex justify-between text-sm text-slate-500">
-                                            <span>Tax (5%)</span>
-                                            <span>₹{tax.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm text-red-400">
-                                            <span>Discount</span>
-                                            <span>- ₹{parseFloat(discount || '0').toFixed(2)}</span>
-                                        </div>
+
+                                        {/* Service Charge — Dine In only */}
+                                        {orderType === 'dine-in' && serviceChargeAmount > 0 && (
+                                            <div className="flex justify-between text-sm text-amber-600 font-medium">
+                                                <span>🪑 Service Charge</span>
+                                                <span>Rs. {serviceChargeAmount.toFixed(2)}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Take Away — No extra charge */}
+                                        {orderType === 'takeaway' && (
+                                            <div className="flex justify-between text-sm text-yellow-600">
+                                                <span>🛍️ Service Charge</span>
+                                                <span className="font-medium">None</span>
+                                            </div>
+                                        )}
+
+                                        {discountAmount > 0 && (
+                                            <div className="flex justify-between text-sm text-red-400">
+                                                <span>Discount</span>
+                                                <span>- Rs. {discountAmount.toFixed(2)}</span>
+                                            </div>
+                                        )}
+
                                         <div className="flex justify-between font-bold text-slate-800 text-xl border-t border-slate-200 pt-3 mt-2">
                                             <span>Total</span>
-                                            <span className="text-green-600">₹{total.toFixed(2)}</span>
+                                            <span className="text-green-600">Rs. {total.toFixed(2)}</span>
                                         </div>
                                     </div>
 
@@ -497,7 +574,7 @@ export default function BillingPage() {
                                     {paymentMethod === 'cash' && (
                                         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
                                             <label className="text-xs font-semibold text-blue-600 uppercase block mb-2">
-                                                💵 Given Amount (₹)
+                                                💵 Given Amount (Rs.)
                                             </label>
                                             <input placeholder="0" value={givenMoney} type="number"
                                                    onChange={e => setGivenMoney(e.target.value)}
@@ -505,7 +582,7 @@ export default function BillingPage() {
                                             {parseFloat(givenMoney) > 0 && (
                                                 <div className="flex justify-between font-bold text-blue-600 text-lg mt-3">
                                                     <span>Change</span>
-                                                    <span>₹{(parseFloat(givenMoney) - total).toFixed(2)}</span>
+                                                    <span>Rs. {(parseFloat(givenMoney) - total).toFixed(2)}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -542,11 +619,11 @@ export default function BillingPage() {
                             <div className="grid grid-cols-2 gap-6">
 
                                 {/* Invoice Preview */}
-                                <div id="invoice" className="border border-slate-200 rounded-xl p-5 font-mono bg-slate-50">
+                                <div className="border border-slate-200 rounded-xl p-5 font-mono bg-slate-50">
                                     <div className="text-center border-b-2 border-dashed border-slate-300 pb-4 mb-4">
                                         <h2 className="text-lg font-bold text-slate-800 tracking-widest">🍽️ RESTAURANT</h2>
-                                        <h2 className="text-lg font-bold text-slate-800 tracking-widest">BILLING SYSTEM</h2>
-                                        <p className="text-slate-400 text-xs mt-2">Tax Invoice / Receipt</p>
+                                        <h2 className="text-lg font-bold text-slate-800 tracking-widest">🇱🇰 SRI LANKA</h2>
+                                        <p className="text-slate-400 text-xs mt-2">Invoice / Receipt</p>
                                         <p className="text-slate-400 text-xs mt-1">
                                             📅 {new Date().toLocaleDateString('en-IN', {
                                             year: 'numeric', month: 'long', day: 'numeric'
@@ -561,9 +638,9 @@ export default function BillingPage() {
                                             ['Bill No.', `#${bill.id}`],
                                             ['Customer', bill.customer?.name],
                                             [bill.orderType === 'takeaway' ? 'Order Type' : 'Table No.',
-                                                bill.orderType === 'takeaway' ? '🛍️ Take Away' : bill.tableNumber],
+                                                bill.orderType === 'takeaway' ? '🛍️ Take Away' : String(bill.tableNumber)],
                                             ['Payment', bill.paymentMethod === 'cash' ? '💵 Cash' :
-                                                bill.paymentMethod === 'card' ? '💳 Card' : '📱 UPI'],
+                                                bill.paymentMethod === 'card' ? '💳 Card' : '📱 Online'],
                                         ].map(([label, value]) => (
                                             <div key={label} className="flex justify-between">
                                                 <span className="text-slate-400">{label}</span>
@@ -585,7 +662,9 @@ export default function BillingPage() {
                                             <tr key={item.menuItemId} className="border-b border-slate-100">
                                                 <td className="py-1.5 text-slate-700">{item.name}</td>
                                                 <td className="py-1.5 text-center text-slate-500">{item.quantity}</td>
-                                                <td className="py-1.5 text-right text-slate-700">₹{item.totalPrice.toFixed(2)}</td>
+                                                <td className="py-1.5 text-right text-slate-700">
+                                                    Rs. {item.totalPrice.toFixed(2)}
+                                                </td>
                                             </tr>
                                         ))}
                                         </tbody>
@@ -593,28 +672,40 @@ export default function BillingPage() {
 
                                     <div className="border-t border-dashed border-slate-300 pt-2 space-y-1 text-xs">
                                         <div className="flex justify-between text-slate-500">
-                                            <span>Subtotal</span><span>₹{bill.subtotal?.toFixed(2)}</span>
+                                            <span>Subtotal</span>
+                                            <span>Rs. {bill.subtotal?.toFixed(2)}</span>
                                         </div>
-                                        <div className="flex justify-between text-slate-500">
-                                            <span>Tax (5%)</span><span>₹{bill.tax?.toFixed(2)}</span>
-                                        </div>
+                                        {bill.tax > 0 && (
+                                            <div className="flex justify-between text-amber-600">
+                                                <span>Service Charge</span>
+                                                <span>Rs. {bill.tax?.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {bill.orderType === 'takeaway' && (
+                                            <div className="flex justify-between text-yellow-600">
+                                                <span>Service Charge</span>
+                                                <span>None</span>
+                                            </div>
+                                        )}
                                         {bill.discount > 0 && (
                                             <div className="flex justify-between text-red-400">
-                                                <span>Discount</span><span>- ₹{bill.discount?.toFixed(2)}</span>
+                                                <span>Discount</span>
+                                                <span>- Rs. {bill.discount?.toFixed(2)}</span>
                                             </div>
                                         )}
                                         <div className="flex justify-between font-bold text-slate-800 text-base border-t-2 border-slate-800 pt-1.5">
                                             <span>TOTAL</span>
-                                            <span className="text-green-600">₹{bill.total?.toFixed(2)}</span>
+                                            <span className="text-green-600">Rs. {bill.total?.toFixed(2)}</span>
                                         </div>
                                         {bill.paymentMethod === 'cash' && parseFloat(givenMoney) > 0 && (
                                             <>
                                                 <div className="flex justify-between font-bold text-slate-700">
-                                                    <span>Given</span><span>₹{parseFloat(givenMoney).toFixed(2)}</span>
+                                                    <span>Given</span>
+                                                    <span>Rs. {parseFloat(givenMoney).toFixed(2)}</span>
                                                 </div>
                                                 <div className="flex justify-between font-bold text-blue-600">
                                                     <span>Change</span>
-                                                    <span>₹{(parseFloat(givenMoney) - bill.total).toFixed(2)}</span>
+                                                    <span>Rs. {(parseFloat(givenMoney) - bill.total).toFixed(2)}</span>
                                                 </div>
                                             </>
                                         )}
@@ -623,6 +714,7 @@ export default function BillingPage() {
                                     <div className="text-center border-t-2 border-dashed border-slate-300 mt-3 pt-3">
                                         <p className="text-base">🙏 Thank You!</p>
                                         <p className="text-slate-400 text-xs mt-1">Please Visit Again ⭐</p>
+                                        <p className="text-slate-300 text-xs">🇱🇰 Restaurant Billing System</p>
                                     </div>
                                 </div>
 
@@ -633,10 +725,10 @@ export default function BillingPage() {
                                         {[
                                             { label: 'Bill ID', value: `#${bill.id}`, color: 'text-slate-800' },
                                             { label: 'Customer', value: bill.customer?.name, color: 'text-slate-800' },
-                                            { label: 'Subtotal', value: `₹${bill.subtotal?.toFixed(2)}`, color: 'text-slate-800' },
-                                            { label: 'Tax', value: `₹${bill.tax?.toFixed(2)}`, color: 'text-slate-800' },
-                                            { label: 'Discount', value: `₹${bill.discount?.toFixed(2)}`, color: 'text-red-500' },
-                                            { label: 'Total', value: `₹${bill.total?.toFixed(2)}`, color: 'text-green-600' },
+                                            { label: 'Subtotal', value: `Rs. ${bill.subtotal?.toFixed(2)}`, color: 'text-slate-800' },
+                                            { label: 'Service Charge', value: bill.tax > 0 ? `Rs. ${bill.tax?.toFixed(2)}` : 'None', color: bill.tax > 0 ? 'text-amber-600' : 'text-slate-400' },
+                                            { label: 'Discount', value: `Rs. ${bill.discount?.toFixed(2)}`, color: 'text-red-500' },
+                                            { label: 'Total', value: `Rs. ${bill.total?.toFixed(2)}`, color: 'text-green-600' },
                                         ].map(item => (
                                             <div key={item.label} className="bg-slate-50 rounded-xl p-3">
                                                 <p className="text-xs text-slate-400">{item.label}</p>
@@ -653,7 +745,8 @@ export default function BillingPage() {
                                         <button onClick={() => {
                                             setBill(null); setMessage(''); setBillItems([]);
                                             setSelectedCustomer(''); setTableNumber('');
-                                            setDiscount('0'); setGivenMoney('0'); setOrderType('dine-in');
+                                            setDiscount('0'); setGivenMoney('0');
+                                            setServiceCharge('0'); setOrderType('dine-in');
                                         }}
                                                 className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3.5 rounded-xl font-bold transition shadow-md">
                                             + New Bill

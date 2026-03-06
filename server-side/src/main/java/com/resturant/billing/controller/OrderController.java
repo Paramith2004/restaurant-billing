@@ -28,7 +28,6 @@ public class OrderController {
     @Autowired
     private MenuItemRepository menuItemRepository;
 
-    // GET all orders - latest first
     @GetMapping
     public List<Order> getAll() {
         List<Order> orders = orderRepository.findAll();
@@ -36,13 +35,11 @@ public class OrderController {
         return orders;
     }
 
-    // GET single order by ID
     @GetMapping("/{id}")
     public Order getById(@PathVariable Long id) {
         return orderRepository.findById(id).orElseThrow();
     }
 
-    // POST create order/bill
     @PostMapping
     public Order createOrder(@RequestBody Map<String, Object> body) {
 
@@ -51,7 +48,9 @@ public class OrderController {
 
         Integer tableNumber = (Integer) body.get("tableNumber");
         String paymentMethod = (String) body.get("paymentMethod");
+        String orderType = (String) body.getOrDefault("orderType", "dine-in");
         Double discount = Double.valueOf(body.get("discount").toString());
+        Double serviceCharge = Double.valueOf(body.getOrDefault("serviceCharge", 0).toString());
 
         List<Map<String, Object>> itemsData =
                 (List<Map<String, Object>>) body.get("items");
@@ -82,7 +81,11 @@ public class OrderController {
             subtotal += orderItem.getTotalPrice();
         }
 
-        double tax = subtotal * 0.05;
+        // Sri Lankan system:
+        // Dine In → service charge (custom amount)
+        // Take Away → no service charge, no tax
+        double tax = orderType.equals("dine-in") ? serviceCharge : 0;
+
         order.setSubtotal(subtotal);
         order.setTax(tax);
         order.setTotal(subtotal + tax - discount);
@@ -91,7 +94,6 @@ public class OrderController {
         return orderRepository.save(order);
     }
 
-    // DELETE order by ID
     @DeleteMapping("/{id}")
     public void deleteOrder(@PathVariable Long id) {
         orderRepository.deleteById(id);

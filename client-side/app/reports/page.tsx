@@ -83,7 +83,7 @@ export default function ReportsPage() {
                     <div className="bg-white p-5 rounded-xl shadow text-center">
                         <p className="text-4xl mb-2">💰</p>
                         <p className="text-3xl font-bold text-green-600">
-                            ₹{summary?.totalRevenue.toFixed(2)}
+                            Rs.{summary?.totalRevenue.toFixed(2)}
                         </p>
                         <p className="text-gray-500 text-sm mt-1">Total Revenue</p>
                     </div>
@@ -100,14 +100,14 @@ export default function ReportsPage() {
                     <div className="bg-white p-5 rounded-xl shadow text-center">
                         <p className="text-4xl mb-2">🏷️</p>
                         <p className="text-3xl font-bold text-blue-600">
-                            ₹{summary?.totalTax.toFixed(2)}
+                            Rs.{summary?.totalTax.toFixed(2)}
                         </p>
                         <p className="text-gray-500 text-sm mt-1">Total Tax Collected</p>
                     </div>
                     <div className="bg-white p-5 rounded-xl shadow text-center">
                         <p className="text-4xl mb-2">🎁</p>
                         <p className="text-3xl font-bold text-red-500">
-                            ₹{summary?.totalDiscount.toFixed(2)}
+                            Rs.{summary?.totalDiscount.toFixed(2)}
                         </p>
                         <p className="text-gray-500 text-sm mt-1">Total Discounts</p>
                     </div>
@@ -152,7 +152,7 @@ export default function ReportsPage() {
                             <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
                                 <span className="text-sm text-gray-600">Average Order Value</span>
                                 <span className="font-bold text-gray-800">
-                  ₹{summary?.totalOrders
+                  Rs.{summary?.totalOrders
                                     ? (summary.totalRevenue / summary.totalOrders).toFixed(2)
                                     : '0.00'}
                 </span>
@@ -160,7 +160,7 @@ export default function ReportsPage() {
                             <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
                                 <span className="text-sm text-gray-600">Average Tax per Order</span>
                                 <span className="font-bold text-gray-800">
-                  ₹{summary?.totalOrders
+                  Rs.{summary?.totalOrders
                                     ? (summary.totalTax / summary.totalOrders).toFixed(2)
                                     : '0.00'}
                 </span>
@@ -168,7 +168,7 @@ export default function ReportsPage() {
                             <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
                                 <span className="text-sm text-gray-600">Average Discount per Order</span>
                                 <span className="font-bold text-red-500">
-                  ₹{summary?.totalOrders
+                  Rs.{summary?.totalOrders
                                     ? (summary.totalDiscount / summary.totalOrders).toFixed(2)
                                     : '0.00'}
                 </span>
@@ -176,7 +176,7 @@ export default function ReportsPage() {
                             <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-200">
                                 <span className="text-sm text-gray-600">Net Revenue (after discount)</span>
                                 <span className="font-bold text-green-600">
-                  ₹{((summary?.totalRevenue || 0)).toFixed(2)}
+                  Rs.{((summary?.totalRevenue || 0)).toFixed(2)}
                 </span>
                             </div>
                         </div>
@@ -218,7 +218,7 @@ export default function ReportsPage() {
                                         {order.paymentMethod === 'cash' ? '💵' :
                                             order.paymentMethod === 'card' ? '💳' : '📱'} {order.paymentMethod}
                                     </td>
-                                    <td className="p-4 font-bold text-green-600">₹{order.total?.toFixed(2)}</td>
+                                    <td className="p-4 font-bold text-green-600">Rs.{order.total?.toFixed(2)}</td>
                                     <td className="p-4">
                       <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
                         {order.status}

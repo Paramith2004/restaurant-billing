@@ -107,7 +107,7 @@ export default function MenuPage() {
                             <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                                 <td className="p-4 text-gray-800 font-medium">{item.name}</td>
                                 <td className="p-4 text-gray-600">{item.category}</td>
-                                <td className="p-4 text-gray-600">₹{item.price}</td>
+                                <td className="p-4 text-gray-600">Rs.{item.price}</td>
                                 <td className="p-4 text-gray-600">{item.available ? '✅' : '❌'}</td>
                                 <td className="p-4">
                                     <button

@@ -58,8 +58,8 @@ export default function OrdersPage() {
       <tr>
         <td style="padding:8px 5px;border-bottom:1px solid #eee;">${item.menuItem?.name}</td>
         <td style="padding:8px 5px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td>
-        <td style="padding:8px 5px;border-bottom:1px solid #eee;text-align:right;">₹${item.unitPrice?.toFixed(2)}</td>
-        <td style="padding:8px 5px;border-bottom:1px solid #eee;text-align:right;">₹${item.totalPrice?.toFixed(2)}</td>
+        <td style="padding:8px 5px;border-bottom:1px solid #eee;text-align:right;">Rs.${item.unitPrice?.toFixed(2)}</td>
+        <td style="padding:8px 5px;border-bottom:1px solid #eee;text-align:right;">Rs.${item.totalPrice?.toFixed(2)}</td>
       </tr>`).join('') || '';
 
         printWindow.document.write(`
@@ -99,11 +99,11 @@ export default function OrdersPage() {
         <th style="text-align:right;">Price</th><th style="text-align:right;">Total</th>
       </tr></thead><tbody>${itemsHTML}</tbody></table>
       <div class="dashed"></div>
-      <div class="row"><span>Subtotal</span><span>₹${order.subtotal?.toFixed(2)}</span></div>
-      <div class="row"><span>Tax (5%)</span><span>₹${order.tax?.toFixed(2)}</span></div>
-      ${order.discount > 0 ? `<div class="row" style="color:red;"><span>Discount</span><span>- ₹${order.discount?.toFixed(2)}</span></div>` : ''}
+      <div class="row"><span>Subtotal</span><span>Rs.${order.subtotal?.toFixed(2)}</span></div>
+      <div class="row"><span>Tax (5%)</span><span>Rs.${order.tax?.toFixed(2)}</span></div>
+      ${order.discount > 0 ? `<div class="row" style="color:red;"><span>Discount</span><span>- Rs.${order.discount?.toFixed(2)}</span></div>` : ''}
       <div class="solid"></div>
-      <div class="total-row"><span>TOTAL</span><span style="color:#16a34a;">₹${order.total?.toFixed(2)}</span></div>
+      <div class="total-row"><span>TOTAL</span><span style="color:#16a34a;">Rs.${order.total?.toFixed(2)}</span></div>
       <div class="solid"></div>
       <div class="footer">
         <p style="font-size:16px;margin-bottom:5px;">🙏 Thank You!</p>
@@ -158,13 +158,13 @@ export default function OrdersPage() {
                     </div>
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 text-center">
                         <p className="text-2xl font-bold text-green-600">
-                            ₹{orders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2)}
+                            Rs.{orders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2)}
                         </p>
                         <p className="text-slate-400 text-sm">Total Revenue</p>
                     </div>
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 text-center">
                         <p className="text-2xl font-bold text-orange-500">
-                            ₹{orders.length > 0
+                            Rs.{orders.length > 0
                             ? (orders.reduce((sum, o) => sum + (o.total || 0), 0) / orders.length).toFixed(2)
                             : '0.00'}
                         </p>
@@ -213,7 +213,7 @@ export default function OrdersPage() {
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-bold text-green-600 text-xl">₹{order.total?.toFixed(2)}</p>
+                                            <p className="font-bold text-green-600 text-xl">Rs.{order.total?.toFixed(2)}</p>
                                             <p className="text-xs text-slate-400 mt-1">{order.items?.length || 0} items</p>
                                         </div>
                                     </div>
@@ -247,27 +247,27 @@ export default function OrdersPage() {
                                                 <tr key={item.id} className="border-b border-slate-100">
                                                     <td className="py-2 text-sm text-slate-800">{item.menuItem?.name}</td>
                                                     <td className="py-2 text-sm text-slate-500 text-center">{item.quantity}</td>
-                                                    <td className="py-2 text-sm text-slate-500 text-right">₹{item.unitPrice?.toFixed(2)}</td>
-                                                    <td className="py-2 text-sm text-slate-500 text-right">₹{item.totalPrice?.toFixed(2)}</td>
+                                                    <td className="py-2 text-sm text-slate-500 text-right">Rs.{item.unitPrice?.toFixed(2)}</td>
+                                                    <td className="py-2 text-sm text-slate-500 text-right">Rs.{item.totalPrice?.toFixed(2)}</td>
                                                 </tr>
                                             ))}
                                             </tbody>
                                         </table>
                                         <div className="mt-3 pt-3 border-t border-slate-200 space-y-1">
                                             <div className="flex justify-between text-sm text-slate-500">
-                                                <span>Subtotal</span><span>₹{order.subtotal?.toFixed(2)}</span>
+                                                <span>Subtotal</span><span>Rs.{order.subtotal?.toFixed(2)}</span>
                                             </div>
                                             <div className="flex justify-between text-sm text-slate-500">
-                                                <span>Tax</span><span>₹{order.tax?.toFixed(2)}</span>
+                                                <span>Tax</span><span>Rs.{order.tax?.toFixed(2)}</span>
                                             </div>
                                             {order.discount > 0 && (
                                                 <div className="flex justify-between text-sm text-red-400">
-                                                    <span>Discount</span><span>- ₹{order.discount?.toFixed(2)}</span>
+                                                    <span>Discount</span><span>- Rs.{order.discount?.toFixed(2)}</span>
                                                 </div>
                                             )}
                                             <div className="flex justify-between font-bold text-slate-800">
                                                 <span>Total</span>
-                                                <span className="text-green-600">₹{order.total?.toFixed(2)}</span>
+                                                <span className="text-green-600">Rs.{order.total?.toFixed(2)}</span>
                                             </div>
                                         </div>
                                     </div>

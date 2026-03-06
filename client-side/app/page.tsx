@@ -114,7 +114,7 @@ export default function Home() {
                         </div>
                         <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
                             <p className="text-slate-400 text-xs font-medium uppercase mb-1">Revenue</p>
-                            <p className="text-2xl font-bold text-green-600">₹{stats.totalRevenue?.toFixed(0)}</p>
+                            <p className="text-2xl font-bold text-green-600">Rs.{stats.totalRevenue?.toFixed(0)}</p>
                             <p className="text-xs text-slate-400 mt-1">Total earned</p>
                         </div>
                         <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
