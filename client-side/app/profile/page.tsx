@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUser, logout, isLoggedIn, isOwner } from '@/lib/auth';
+import { getUser, logout, isLoggedIn, isAdmin, isAdminOrOwner } from '@/lib/auth';
 import API from '@/lib/api';
 
 interface UserProfile { id: string; name: string; email: string; role: string; }
@@ -13,7 +13,9 @@ export default function ProfilePage() {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [staffList, setStaffList] = useState<StaffMember[]>([]);
     const [showAddStaff, setShowAddStaff] = useState(false);
-    const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'staff' });
+    const [newStaff, setNewStaff] = useState({
+        name: '', email: '', password: '', role: 'staff'
+    });
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -33,7 +35,7 @@ export default function ProfilePage() {
         }
         const userData = getUser();
         setUser(userData as UserProfile);
-        if (isOwner()) loadStaff();
+        if (isAdminOrOwner()) loadStaff();
     }, [router, loadStaff]);
 
     const handleAddStaff = async () => {
@@ -49,7 +51,7 @@ export default function ProfilePage() {
             loadStaff();
         } catch (err: unknown) {
             const error = err as { response?: { data?: string } };
-            setMessage('❌ ' + (error.response?.data || 'Failed to add staff!'));
+            setMessage('❌ ' + (error.response?.data || 'Failed!'));
         } finally {
             setLoading(false);
         }
@@ -62,11 +64,37 @@ export default function ProfilePage() {
             setMessage('🗑️ Staff deleted!');
             loadStaff();
         } catch {
-            setMessage('❌ Failed to delete staff!');
+            setMessage('❌ Failed to delete!');
+        }
+    };
+
+    const handleUpdateRole = async (id: number, role: string) => {
+        try {
+            await API.put(`/auth/staff/${id}/role`, { role });
+            setMessage('✅ Role updated!');
+            loadStaff();
+        } catch {
+            setMessage('❌ Failed to update role!');
         }
     };
 
     const handleLogout = () => { logout(); router.push('/login'); };
+
+    const getRoleBadge = (role: string) => {
+        switch (role) {
+            case 'admin': return 'bg-red-100 text-red-700';
+            case 'owner': return 'bg-yellow-100 text-yellow-700';
+            default: return 'bg-blue-100 text-blue-700';
+        }
+    };
+
+    const getRoleIcon = (role: string) => {
+        switch (role) {
+            case 'admin': return '👨‍💻';
+            case 'owner': return '👑';
+            default: return '👤';
+        }
+    };
 
     if (!user) return null;
 
@@ -77,10 +105,15 @@ export default function ProfilePage() {
             <div className="bg-white border-b border-slate-200 px-6 py-4 shadow-sm">
                 <div className="max-w-3xl mx-auto flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-800">👤 Profile</h1>
-                        <p className="text-slate-400 text-sm mt-0.5">Manage your account & staff</p>
+                        <h1 className="text-2xl font-bold text-slate-800">
+                            {getRoleIcon(user.role)} Profile
+                        </h1>
+                        <p className="text-slate-400 text-sm mt-0.5">
+                            Manage your account & users
+                        </p>
                     </div>
-                    <Link href="/" className="text-sm text-slate-500 hover:text-orange-500 transition font-medium">
+                    <Link href="/"
+                          className="text-sm text-slate-500 hover:text-orange-500 transition font-medium">
                         ← Dashboard
                     </Link>
                 </div>
@@ -89,7 +122,7 @@ export default function ProfilePage() {
             <div className="max-w-3xl mx-auto p-6 space-y-5">
 
                 {message && (
-                    <div className={`p-4 rounded-xl font-medium text-sm flex items-center gap-2 ${
+                    <div className={`p-4 rounded-xl font-medium text-sm ${
                         message.includes('⚠️') || message.includes('❌')
                             ? 'bg-red-50 text-red-600 border border-red-200'
                             : 'bg-green-50 text-green-600 border border-green-200'
@@ -100,21 +133,33 @@ export default function ProfilePage() {
 
                 {/* Profile Card */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="bg-slate-800 px-5 py-3">
-                        <h3 className="font-semibold text-white text-sm uppercase tracking-wider">My Profile</h3>
+                    <div className={`px-5 py-3 ${
+                        user.role === 'admin'
+                            ? 'bg-red-600'
+                            : user.role === 'owner'
+                                ? 'bg-yellow-600'
+                                : 'bg-slate-800'
+                    }`}>
+                        <h3 className="font-semibold text-white text-sm uppercase tracking-wider">
+                            My Profile
+                        </h3>
                     </div>
                     <div className="p-6">
                         <div className="flex items-center gap-5 mb-6">
-                            <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center text-4xl">
-                                {user.role === 'owner' ? '👑' : '👤'}
+                            <div className={`w-20 h-20 rounded-full flex items-center justify-center text-4xl ${
+                                user.role === 'admin'
+                                    ? 'bg-red-100'
+                                    : user.role === 'owner'
+                                        ? 'bg-yellow-100'
+                                        : 'bg-blue-100'
+                            }`}>
+                                {getRoleIcon(user.role)}
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold text-slate-800">{user.name}</h2>
                                 <p className="text-slate-400 text-sm">{user.email}</p>
-                                <span className={`mt-2 inline-block text-xs font-bold px-3 py-1 rounded-full uppercase ${
-                                    user.role === 'owner' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
-                                }`}>
-                  {user.role === 'owner' ? '👑 Owner' : '👤 Staff'}
+                                <span className={`mt-2 inline-block text-xs font-bold px-3 py-1 rounded-full uppercase ${getRoleBadge(user.role)}`}>
+                  {getRoleIcon(user.role)} {user.role}
                 </span>
                             </div>
                         </div>
@@ -134,22 +179,39 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Owner — Staff Management */}
-                {isOwner() && (
+                {/* Admin Info Banner */}
+                {isAdmin() && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
+                        <span className="text-2xl">👨‍💻</span>
+                        <div>
+                            <p className="font-bold text-red-700 text-sm">Admin Access</p>
+                            <p className="text-red-600 text-xs mt-0.5">
+                                You have full system access — can manage all users and roles
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* User Management — Admin & Owner */}
+                {isAdminOrOwner() && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="bg-slate-800 px-5 py-3 flex items-center justify-between">
                             <h3 className="font-semibold text-white text-sm uppercase tracking-wider">
-                                👥 Staff Management
+                                👥 User Management
                             </h3>
                             <button onClick={() => setShowAddStaff(!showAddStaff)}
                                     className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-orange-600 transition">
-                                + Add Staff
+                                + Add User
                             </button>
                         </div>
                         <div className="p-5">
+
+                            {/* Add User Form */}
                             {showAddStaff && (
                                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 space-y-3">
-                                    <p className="font-semibold text-orange-700 text-sm">➕ Add New Staff</p>
+                                    <p className="font-semibold text-orange-700 text-sm">
+                                        ➕ Add New User
+                                    </p>
                                     <div className="grid grid-cols-2 gap-3">
                                         <input placeholder="Full Name *" value={newStaff.name}
                                                onChange={e => setNewStaff({ ...newStaff, name: e.target.value })}
@@ -166,11 +228,12 @@ export default function ProfilePage() {
                                             className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
                                         <option value="staff">👤 Staff</option>
                                         <option value="owner">👑 Owner</option>
+                                        {isAdmin() && <option value="admin">👨‍💻 Admin</option>}
                                     </select>
                                     <div className="flex gap-2">
                                         <button onClick={handleAddStaff} disabled={loading}
                                                 className="flex-1 bg-orange-500 text-white py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 disabled:opacity-50">
-                                            {loading ? '⏳ Adding...' : '✅ Add Staff'}
+                                            {loading ? '⏳ Adding...' : '✅ Add User'}
                                         </button>
                                         <button onClick={() => setShowAddStaff(false)}
                                                 className="bg-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm hover:bg-slate-300">
@@ -180,16 +243,25 @@ export default function ProfilePage() {
                                 </div>
                             )}
 
+                            {/* User List */}
                             {staffList.length === 0 ? (
-                                <p className="text-slate-400 text-sm text-center py-6">No staff members yet</p>
+                                <p className="text-slate-400 text-sm text-center py-6">
+                                    No users yet
+                                </p>
                             ) : (
                                 <div className="space-y-3">
                                     {staffList.map(staff => (
                                         <div key={staff.id}
                                              className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-xl">
-                                                    {staff.role === 'owner' ? '👑' : '👤'}
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${
+                                                    staff.role === 'admin'
+                                                        ? 'bg-red-100'
+                                                        : staff.role === 'owner'
+                                                            ? 'bg-yellow-100'
+                                                            : 'bg-blue-100'
+                                                }`}>
+                                                    {getRoleIcon(staff.role)}
                                                 </div>
                                                 <div>
                                                     <p className="font-semibold text-slate-800 text-sm">
@@ -201,17 +273,29 @@ export default function ProfilePage() {
                                                     <p className="text-slate-400 text-xs">{staff.email}</p>
                                                 </div>
                                             </div>
+
                                             <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                            staff.role === 'owner'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {staff.role === 'owner' ? '👑 Owner' : '👤 Staff'}
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${getRoleBadge(staff.role)}`}>
+                          {getRoleIcon(staff.role)} {staff.role}
                         </span>
+
+                                                {/* Admin can change roles */}
+                                                {isAdmin() && staff.email !== user.email && (
+                                                    <select
+                                                        value={staff.role}
+                                                        onChange={e => handleUpdateRole(staff.id, e.target.value)}
+                                                        className="border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400">
+                                                        <option value="staff">👤 Staff</option>
+                                                        <option value="owner">👑 Owner</option>
+                                                        <option value="admin">👨‍💻 Admin</option>
+                                                    </select>
+                                                )}
+
+                                                {/* Delete — not yourself */}
                                                 {staff.email !== user.email && (
-                                                    <button onClick={() => handleDeleteStaff(staff.id, staff.name)}
-                                                            className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-red-600 transition">
+                                                    <button
+                                                        onClick={() => handleDeleteStaff(staff.id, staff.name)}
+                                                        className="bg-red-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-red-600 transition">
                                                         Delete
                                                     </button>
                                                 )}
@@ -224,8 +308,8 @@ export default function ProfilePage() {
                     </div>
                 )}
 
-                {/* Staff Only */}
-                {!isOwner() && (
+                {/* Staff Only View */}
+                {!isAdminOrOwner() && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="bg-slate-800 px-5 py-3">
                             <h3 className="font-semibold text-white text-sm uppercase tracking-wider">
