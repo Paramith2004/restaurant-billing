@@ -1,37 +1,32 @@
-// Save token
 export const saveAuth = (data: {
+    id: string;
     token: string;
     name: string;
     email: string;
     role: string;
 }) => {
+    localStorage.setItem('id', data.id);
     localStorage.setItem('token', data.token);
     localStorage.setItem('name', data.name);
     localStorage.setItem('email', data.email);
     localStorage.setItem('role', data.role);
 };
 
-// Get token
-export const getToken = () => {
-    return localStorage.getItem('token');
-};
+export const getToken = () => localStorage.getItem('token');
 
-// Get user
-export const getUser = () => {
-    return {
-        name: localStorage.getItem('name'),
-        email: localStorage.getItem('email'),
-        role: localStorage.getItem('role'),
-    };
-};
+export const getUser = () => ({
+    id: localStorage.getItem('id'),
+    name: localStorage.getItem('name'),
+    email: localStorage.getItem('email'),
+    role: localStorage.getItem('role'),
+});
 
-// Check if logged in
-export const isLoggedIn = () => {
-    return !!localStorage.getItem('token');
-};
+export const isLoggedIn = () => !!localStorage.getItem('token');
 
-// Logout
+export const isOwner = () => localStorage.getItem('role') === 'owner';
+
 export const logout = () => {
+    localStorage.removeItem('id');
     localStorage.removeItem('token');
     localStorage.removeItem('name');
     localStorage.removeItem('email');

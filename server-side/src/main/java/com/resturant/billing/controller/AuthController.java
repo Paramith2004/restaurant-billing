@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -31,6 +32,7 @@ public class AuthController {
         String email = body.get("email");
         String password = body.get("password");
         String name = body.get("name");
+        String role = body.getOrDefault("role", "staff");
 
         if (userRepository.findByEmail(email).isPresent()) {
             return ResponseEntity.badRequest().body("Email already exists!");
@@ -40,7 +42,7 @@ public class AuthController {
         user.setName(name);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
-        user.setRole("staff");
+        user.setRole(role);
         userRepository.save(user);
 
         return ResponseEntity.ok("User registered successfully!");
@@ -67,10 +69,25 @@ public class AuthController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("token", token);
+        response.put("id", user.getId());
         response.put("name", user.getName());
         response.put("email", user.getEmail());
         response.put("role", user.getRole());
 
         return ResponseEntity.ok(response);
+    }
+
+    // GET all staff — Owner only
+    @GetMapping("/staff")
+    public ResponseEntity<?> getAllStaff() {
+        List<User> users = userRepository.findAll();
+        return ResponseEntity.ok(users);
+    }
+
+    // DELETE staff — Owner only
+    @DeleteMapping("/staff/{id}")
+    public ResponseEntity<?> deleteStaff(@PathVariable Long id) {
+        userRepository.deleteById(id);
+        return ResponseEntity.ok("Staff deleted!");
     }
 }

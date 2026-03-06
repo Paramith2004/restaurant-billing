@@ -10,6 +10,7 @@ import com.resturant.billing.repository.MenuItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -27,11 +28,21 @@ public class OrderController {
     @Autowired
     private MenuItemRepository menuItemRepository;
 
+    // GET all orders - latest first
     @GetMapping
     public List<Order> getAll() {
-        return orderRepository.findAll();
+        List<Order> orders = orderRepository.findAll();
+        Collections.reverse(orders);
+        return orders;
     }
 
+    // GET single order by ID
+    @GetMapping("/{id}")
+    public Order getById(@PathVariable Long id) {
+        return orderRepository.findById(id).orElseThrow();
+    }
+
+    // POST create order/bill
     @PostMapping
     public Order createOrder(@RequestBody Map<String, Object> body) {
 
@@ -78,5 +89,11 @@ public class OrderController {
         order.setItems(orderItems);
 
         return orderRepository.save(order);
+    }
+
+    // DELETE order by ID
+    @DeleteMapping("/{id}")
+    public void deleteOrder(@PathVariable Long id) {
+        orderRepository.deleteById(id);
     }
 }
