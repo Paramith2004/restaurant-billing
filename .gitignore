@@ -1,5 +1,6 @@
 # Maven
-billing/target/
+server-side/target/
+target/
 
 # IntelliJ
 .idea/
@@ -7,6 +8,17 @@ billing/target/
 
 # Mac
 .DS_Store
+**/.DS_Store
+
+# Next.js
+.next/
+**/.next/
+node_modules/
+**/node_modules/
 
 # Logs
 *.log
+
+# Environment
+.env
+.env.local
